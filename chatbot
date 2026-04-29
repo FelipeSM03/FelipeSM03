@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conselheiro Amigo</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f7f9fc; display: flex; justify-content: center; padding: 20px; }
+        #chat-container { width: 100%; max-width: 450px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+        #chat-header { background: #3c2fef; color: white; padding: 20px; text-align: center; font-weight: bold; }
+        #chat-output { height: 500px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 15px; font-size: 15px; line-height: 1.5; }
+        .user-msg { align-self: flex-end; background-color: #6c5ce7; color: white; border-bottom-right-radius: 2px; }
+        .bot-msg { align-self: flex-start; background-color: #f1f2f6; color: #2f3542; border-bottom-left-radius: 2px; border: 1px solid #e1e1e1; }
+        #input-area { display: flex; padding: 20px; background: #fff; border-top: 1px solid #eee; }
+        #user-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; transition: 0.3s; }
+        #user-input:focus { border-color: #6c5ce7; }
+        button { background: none; border: none; color: #6c5ce7; font-weight: bold; margin-left: 10px; cursor: pointer; font-size: 16px; }
+        .typing { font-style: italic; font-size: 12px; color: #a4b0be; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+ 
+<div id="digitando " class="bolha-digitando" style="display: none;">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+ 
+<div id="chat-container">
+    <div id="chat-header">Amigo Confiável</div>
+    <div id="chat-output"></div>
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Desabafe aqui...">
+        <button onclick="processUserInput()">Enviar</button>
+    </div>
+</div>
+ 
+<script>
+    const chatOutput = document.getElementById("chat-output");
+    const userInput = document.getElementById("user-input");
+ 
+    // Banco de respostas empáticas
+    const conselhos = {
+        tristeza: [
+            "Sinto muito que você esteja passando por isso. É normal se sentir assim às vezes.",
+            "Respire fundo. Você não precisa resolver tudo hoje. Quer me contar mais sobre o que aconteceu?",
+            "Estou aqui te ouvindo. Chorar ou ficar triste faz parte do processo de cura, não se cobre tanto."
+        ,"Às vezes, colocar para fora ajuda a organizar os pensamentos. Se quiser, estou aqui para te ouvir sem julgamentos."],
+        solidao: [
+            "A solidão dói, mas saiba que você não está falando sozinho agora. Eu estou aqui.",
+            "Às vezes nos sentimos sós mesmo rodeados de gente. O que você acha que ajudaria a confortar seu coração agora?"
+        ,"A solidão pode ser muito pesada, e tudo bem se sentir assim às vezes. Saiba que, por mais que pareça, você não é a única pessoa a passar por isso agora."],
+        ansiedade: [
+            "Tente focar no agora. O que você consegue ver e ouvir ao seu redor?",
+            "Seus pensamentos estão acelerados? Lembre-se: pensamentos não são fatos. Vai passar."
+        ],
+        apoio: [
+            "Você é mais forte do que imagina, mesmo nos dias em que não acredita nisso.",
+            "Um passo de cada vez. O que você gostaria de fazer por você hoje, mesmo que seja algo pequeno?"
+        ],
+        saudar:[
+            "Oi, pode desabafar.","Não compreendi, pode repetir?","Estou a seu dispor"
+        ],
+ 
+        ajuda:[
+            "O canal Pode Falar é uma plataforma gratuita e anônima de apoio à saúde mental para adolescentes e jovens (13 a 24 anos), funcionando via chatbot no site ou WhatsApp (61) 9660-8843. Oferece suporte para ansiedade, angústia e outros desafios, com opção de atendimento especializado."
+        ],
+       
+        cansaço:[
+            "Seu corpo e sua mente estão pedindo uma pausa. Descansar não é desistir, é recuperar as energias. Tente se desligar um pouco das telas e fazer algo leve por você."
+        ],
+        alerta:[
+            "Sua vida é muito importante. Por favor, converse com alguém agora mesmo! Ligue gratuitamente para o CVV no número 188 ou acesse cvv.org.br. Eles atendem 24h por dia."
+        ],
+        luto:[
+            "A dor da perda não tem um tempo certo para passar. Respeite o seu ritmo e chore se precisar. Quer me contar um pouco sobre quem você perdeu?"
+        ],
+        culpa:["Erros acontecem e fazem parte da nossa evolução. Não seja tão duro com você mesmo. O que você faria se estivesse aconselhando um amigo nessa mesma situação?"
+ 
+        ],
+        insonia:[
+            "Se a sua mente não desliga, tente não brigar com ela. Que tal focarmos em uma respiração bem lenta agora ou em colocar uma música bem calma?"
+        ],
+        desespero:[
+            "Eu sei que agora tudo parece escuro e sem saída, mas respire fundo comigo. Essa tempestade de sentimentos vai passar, você não precisa carregar tudo isso sozinho."
+        ],
+        opçoes:[
+            "Se você não sabe bem o que falar, pode digitar palavras como: 'ansiedade', 'tristeza', 'cansaço', 'solidão' ou 'ajuda' para que eu te guie."
+        ],
+        
+        conselho:[
+            "Para controlar a ansiedade, é eficaz combinar técnicas de respiração."
+        ],
+
+        perda: [
+            "Não se preocupe, por mais que uma perda seja algo triste é sempre bom erguer a cabeça e seguir em frente, para superar seu passado."
+
+        ],
+        fallback: "Não consegui entender muito bem essa frase, mas estou aqui focado em você. Quer tentar me contar de outra forma o que está sentindo? Se preferir, pode usar palavras como 'triste', 'ansioso' ou 'cansado' para eu te entender melhor."
+ 
+    };
+ 
+    function displayMessage(role, text) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = role === "user" ? "msg user-msg" : "msg bot-msg";
+        msgDiv.innerHTML = text;
+        chatOutput.appendChild(msgDiv);
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+ 
+    function getBotResponse(input) {
+        const text = input.toLowerCase();
+ 
+        // Detecção de Tristeza profunda/Desânimo
+        if (["triste", "mal", "ruim", "chorando", "choro", "sofrer", "desanimado", "deprimido"].some(w => text.toLowerCase().includes(w))) {
+            return conselhos.tristeza[Math.floor(Math.random() * conselhos.tristeza.length)];
+        }
+ 
+        // Detecção de Solidão
+        if (["sozinho", "sozinha", "solitário", "ninguém", "só"].some(w => text.toLowerCase().includes(w))) {
+            return conselhos.solidao[Math.floor(Math.random() * conselhos.solidao.length)];
+        }
+ 
+        // Detecção de Ansiedade/Medo
+        if (["medo", "ansioso", "ansiosa", "preocupado", "preocupada", "pânico","estou Ansioso","estou com medo"].some(w => text.toLowerCase().includes(w))) {
+            return conselhos.ansiedade[Math.floor(Math.random() * conselhos.ansiedade.length)];
+        }
+ 
+        // Cansaço/Exaustão
+        if (["cansado","cansada","exausto","nao aguento","desistir"].some(w => text.toLowerCase().includes(w))) {
+            return conselhos.Cansaço[Math.floor(Math.random() * conselhos.ansiedade.length)];
+        }
+ 
+        // Agradecimento ou melhora
+        if (["obrigado", "obrigada", "ajudou", "melhor" ,"estou melhor","melhorei"].some(w => text.toLowerCase().includes(w))) {
+            return "Fico muito feliz em saber que pude ajudar um pouquinho. Saiba que você é importante! ❤️";
+        }
+       
+        // Saudaçao
+        if(["oi","oiiii","oiiiii","Oii","Oiii","ola","olá"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.saudar[Math.floor(Math.random() * conselhos.saudar.length)];
+        }
+       
+        // Ajuda
+        if(["ajuda","preciso de ajuda","help"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.ajuda[Math.floor(Math.random() * conselhos.ajuda.length)];
+        }
+ 
+        // Alerta
+        if(["morrer", "suicidio", "me matar", "fim da vida", "cortar"].some(w=>text.toLowerCase().includes(w))) {
+            return conselhos.alerta;
+        }
+       
+        //luto
+        if(["luto", "perdi", "morreu", "faleceu", "saudade", "partiu", "partida", "pêsames", "funeral", "enterro"].some(w=>text.toLowerCase().includes(w))) {
+            return conselhos.luto[Math.floor(Math.random() * conselhos.luto.length)]
+        }
+ 
+        //culpa
+        if(["culpa", "culpado", "me arrependo", "fiz errado", "errei", "não devia", "peso no peito", "minha culpa", "fui egoísta"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.culpa[Math.floor(Math.random() * conselhos.culpa.length)];
+        }
+ 
+        //insonia
+        if(["insônia", "não durmo", "sem sono", "acordado", "madrugada", "mente não para", "dormir", "não consigo dormir"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.insonia[Math.floor(Math.random() * conselhos.insonia.length)];
+        }
+ 
+        //desespero
+        if(["desespero", "sem saída", "não aguento mais", "socorro", "tá doendo muito", "não vejo luz", "insuportável", "perdido"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.desespero[Math.floor(Math.random() * conselhos.desespero.length)];
+        }
+ 
+        //opcoes
+        if(["opcoes","Opcoes","Opçoes","opçoes"].some(w=>text.toLowerCase().includes(w))) {
+            return conselhos.opçoes;
+        }
+        
+        // conselho
+        if(["apoio","dica","conselho"].some(w =>text.toLowerCase().includes(w))) {
+            return conselhos.conselho[Math.floor(Math.random() * conselhos.conselho.length)];
+        }
+
+        // perda
+        if(["fali","demitido","quebrou"].some(w=>text.toLowerCase().includes(w))){
+            return conselhos.perda[Math.floor(Math.random() * conselhos.perda.length)];
+        }
+ 
+        return conselhos.fallback;
+    }
+ 
+    function processUserInput() {
+        const message = userInput.value.trim();
+        if (!message) return;
+ 
+        displayMessage("user", message);
+        userInput.value = "";
+ 
+        // Efeito de "O conselheiro está pensando..."
+        const typingIndicator = document.createElement("div");
+        typingIndicator.className = "typing";
+        typingIndicator.innerText = "Pensando na melhor resposta para você...";
+        chatOutput.appendChild(typingIndicator);
+ 
+        setTimeout(() => {
+            typingIndicator.remove();
+            const botReply = getBotResponse(message);
+            displayMessage("bot", botReply);
+        }, 1500);
+    }
+ 
+    userInput.addEventListener("keyup", (e) => { if (e.key === "Enter") processUserInput(); });
+ 
+    // Mensagem inicial acolhedora
+    window.onload = () => {
+        setTimeout(() => {
+            displayMessage("bot", "Oi, percebi que você veio para desabafar. Estou aqui para te escutar.");
+        }, 800);
+    };
+</script>
+ 
+</body>
+</html>
